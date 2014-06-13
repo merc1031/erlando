@@ -14,18 +14,23 @@
 %% Copyright (c) 2011-2013 VMware, Inc.  All rights reserved.
 %%
 
--module(error_t, [InnerMonad]).
+-module(error_t).
 -compile({parse_transform, do}).
 
--behaviour(monad).
--export(['>>='/2, return/1, fail/1, run/1, lift/1]).
+-export([new/1]).
+-export(['>>='/3, return/2, fail/2, run/2, lift/2]).
 
 -ifdef(use_specs).
 -type(monad(A) :: fun (() -> 'ok' | {'ok', A} | {'error', any()})).
 -include("monad_specs.hrl").
 -endif.
 
-'>>='(X, Fun) -> fun () ->
+-define( PMOD_FIX, {?MODULE, InnerMonad} ).
+
+new(InnerMonad) ->
+    ?PMOD_FIX.
+
+'>>='(X, Fun, ?PMOD_FIX) -> fun () ->
                          do([InnerMonad ||
                                 R <- X(),
                                 case R of
@@ -36,8 +41,8 @@
                             ])
                  end.
 
-return(ok) -> fun () -> InnerMonad:return(ok) end;
-return(X)  -> fun () -> InnerMonad:return({ok, X}) end.
+return(ok, ?PMOD_FIX) -> fun () -> InnerMonad:return(ok) end;
+return(X, ?PMOD_FIX)  -> fun () -> InnerMonad:return({ok, X}) end.
 
 %% This is the equivalent of
 %%     fail msg = ErrorT $ return (Left (strMsg msg))
@@ -48,8 +53,8 @@ return(X)  -> fun () -> InnerMonad:return({ok, X}) end.
 %% I.e. note that calling fail on the outer monad is not a failure of
 %% the inner monad: it is success of the inner monad, but the failure
 %% is encapsulated.
-fail(X)   -> fun () -> InnerMonad:return({error, X}) end.
+fail(X, ?PMOD_FIX)   -> fun () -> InnerMonad:return({error, X}) end.
 
-run(Fun) -> Fun().
+run(Fun, _PMOD_FIX) -> Fun().
 
-lift(X) -> fun () -> do([InnerMonad || A <- X, return({ok, A})]) end.
+lift(X, ?PMOD_FIX) -> fun () -> do([InnerMonad || A <- X, return({ok, A})]) end.

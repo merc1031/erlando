@@ -49,10 +49,19 @@ test_funs(ErrorT, [{Module, {Label, FunName}}|Funs])
                   test_funs(ErrorT, Funs)]);
 
 test_funs(ErrorT, [{Module, FunName}|Funs])
-  when is_atom(Module) andalso is_atom(FunName)
-       andalso is_function({Module, FunName}, 0) ->
-    do([ErrorT || hoist(ErrorT, FunName, fun () -> Module:FunName() end),
-                  test_funs(ErrorT, Funs)]);
+        when is_atom(Module) andalso is_atom(FunName)
+        %* andalso is_function({Module, FunName}, 0) ->
+        %* In earler versions (at least in R14B) is_function would return
+        %* 'true' for almost any two elem tuple i.e.
+        %* 1> is_function({foo,bar},99).
+        %* true
+        ->
+    case erlang:function_exported(Module, FunName, 0) of
+        true ->
+            do([ErrorT || hoist(ErrorT, FunName, fun () -> Module:FunName() end),
+                          test_funs(ErrorT, Funs)]);
+        false -> error(illegal)
+    end;
 
 test_funs(ErrorT, [{_Module, []}|Funs]) ->
     test_funs(ErrorT, Funs);
