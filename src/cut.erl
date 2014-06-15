@@ -180,6 +180,7 @@ exprs([]) -> [].
 %% -type expr(Expression) -> Expression.
 
 expr({var, Line, V})     -> {var, Line, V};
+expr({map, Line, M})     -> {map, Line, M}; %% Quick hax fix to allow maps to compile in cut transformed file
 expr({integer, Line, I}) -> {integer, Line, I};
 expr({float, Line, F})   -> {float, Line, F};
 expr({atom, Line, A})    -> {atom, Line, A};
